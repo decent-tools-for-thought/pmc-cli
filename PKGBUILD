@@ -20,5 +20,4 @@ package() {
   cd "$startdir"
   python -m installer --destdir="$pkgdir" dist/*.whl
   install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
-  install -Dm644 PROJECT_OUTLINE.md "$pkgdir/usr/share/doc/$pkgname/PROJECT_OUTLINE.md"
 }

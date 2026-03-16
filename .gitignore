@@ -1,2 +1,7 @@
 *.pyc
 /PROJECT_OUTLINE.md
+/build/
+/dist/
+/pkg/
+/*.pkg.tar.zst
+*.egg-info/
