@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import os
 from pathlib import Path
 import tomllib
 
-CONFIG_DIR = Path.home() / ".config" / "pmc-tool"
+def _xdg_config_home() -> Path:
+    configured = os.environ.get("XDG_CONFIG_HOME")
+    return Path(configured).expanduser() if configured else Path.home() / ".config"
+
+
+CONFIG_DIR = _xdg_config_home() / "pmc-tool"
 CONFIG_PATH = CONFIG_DIR / "config.toml"
 
 DEFAULT_CONFIG = {
