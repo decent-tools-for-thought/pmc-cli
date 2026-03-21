@@ -92,7 +92,7 @@ def _add_grants_search_arguments(parser: argparse.ArgumentParser) -> None:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="pmc")
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(dest="command")
 
     search = subparsers.add_parser("search")
     _add_search_arguments(search, format_choices=["jsonl", "json", "text"])
@@ -110,7 +110,7 @@ def _parser() -> argparse.ArgumentParser:
     fetch.add_argument("--format", choices=["json", "text"])
 
     related = subparsers.add_parser("related")
-    related_sub = related.add_subparsers(dest="related_command", required=True)
+    related_sub = related.add_subparsers(dest="related_command")
     for name in ["references", "citations"]:
         relation = related_sub.add_parser(name)
         relation.add_argument("identifier")
@@ -128,7 +128,7 @@ def _parser() -> argparse.ArgumentParser:
     export.add_argument("--format", choices=["jsonl", "bib", "ris", "csl-json", "json", "text"], default="bib")
 
     grants = subparsers.add_parser("grants")
-    grants_sub = grants.add_subparsers(dest="grants_command", required=True)
+    grants_sub = grants.add_subparsers(dest="grants_command")
 
     grants_search = grants_sub.add_parser("search")
     _add_grants_search_arguments(grants_search)
@@ -139,7 +139,7 @@ def _parser() -> argparse.ArgumentParser:
     grants_fetch.add_argument("--format", choices=["json", "text"])
 
     preprints = subparsers.add_parser("preprints")
-    preprints_sub = preprints.add_subparsers(dest="preprints_command", required=True)
+    preprints_sub = preprints.add_subparsers(dest="preprints_command")
 
     preprint_search = preprints_sub.add_parser("search")
     _add_search_arguments(preprint_search, default_preprints_only=True, format_choices=["jsonl", "json", "text"])
@@ -166,7 +166,7 @@ def _parser() -> argparse.ArgumentParser:
     preprints_sub.add_parser("stats").add_argument("--format", choices=["json", "text"], default="json")
 
     config = subparsers.add_parser("config")
-    config_sub = config.add_subparsers(dest="config_command", required=True)
+    config_sub = config.add_subparsers(dest="config_command")
     config_sub.add_parser("show")
     config_sub.add_parser("reset")
     config_set = config_sub.add_parser("set")
@@ -200,6 +200,23 @@ def _set_config_value(config: dict, field: str, value: str) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
+    if args.command is None:
+        parser.print_help()
+        return 0
+    help_attr_by_command = {
+        "related": "related_command",
+        "grants": "grants_command",
+        "preprints": "preprints_command",
+        "config": "config_command",
+    }
+    help_attr = help_attr_by_command.get(args.command)
+    if help_attr and getattr(args, help_attr) is None:
+        next(
+            action
+            for action in parser._actions
+            if isinstance(action, argparse._SubParsersAction)
+        ).choices[args.command].print_help()
+        return 0
     config = load_config()
 
     if args.command == "config":
