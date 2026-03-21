@@ -5,14 +5,17 @@ Command-line access to the Europe PMC REST API with support for search, fetch, r
 ## Install
 
 ```bash
-pip install -e .
+uv tool install .
 ```
 
 For local execution without installation:
 
 ```bash
-PYTHONPATH=src python -m pmc_tool --help
+uv sync
+uv run pmc --help
 ```
+
+Tagged GitHub releases publish Python distribution artifacts built from the tagged commit.
 
 ## Commands
 
