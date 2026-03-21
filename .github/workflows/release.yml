@@ -34,6 +34,13 @@ jobs:
           python -m pip install --upgrade build
           python -m build
 
+      - name: Generate release checksums
+        run: |
+          (
+            cd dist
+            sha256sum pmc_tool-* > SHA256SUMS
+          )
+
       - name: Smoke test built wheel
         run: |
           python -m venv .release-venv
@@ -46,3 +53,4 @@ jobs:
           files: |
             dist/*.tar.gz
             dist/*.whl
+            dist/SHA256SUMS
