@@ -7,7 +7,7 @@
 Command-line access to the Europe PMC APIs for literature search, record fetch, citation traversal, and export.
 
 > [!IMPORTANT]
-> This codebase is largely AI-generated. It is useful to me, I hope it might be useful to others, and issues and contributions are welcome.
+> This codebase is entirely AI-generated. It is useful to me, I hope it might be useful to others, and issues and contributions are welcome.
 
 ## Why This Exists
 
