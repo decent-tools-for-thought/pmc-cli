@@ -25,7 +25,9 @@ class HttpClient:
                     return json.loads(response.read().decode("utf-8"))
             except HTTPError as exc:
                 if exc.code not in {429, 500, 502, 503, 504} or attempt == 4:
-                    raise RuntimeError(f"Request failed with HTTP {exc.code}: {request_url}") from exc
+                    raise RuntimeError(
+                        f"Request failed with HTTP {exc.code}: {request_url}"
+                    ) from exc
             except URLError as exc:
                 if attempt == 4:
                     raise RuntimeError(f"Request failed: {request_url}") from exc

@@ -9,6 +9,31 @@ from .config import load_config, reset_config, save_config
 from .core import EuropePmcService, render_output
 
 
+DEFAULT_OUTPUT_FORMATS = {
+    "search": "jsonl",
+    "fetch": "json",
+    "related": "json",
+    "fields": "json",
+    "export": "bib",
+    "grants": "json",
+    "preprints": "jsonl",
+}
+
+COMMAND_OUTPUT_CHOICES = {
+    "search": {"jsonl", "json", "text"},
+    "fetch": {"json", "text"},
+    "related": {"json", "jsonl", "text"},
+    "fields": {"json", "text"},
+    "export": {"jsonl", "bib", "ris", "csl-json", "json", "text"},
+    "grants:search": {"jsonl", "json", "text"},
+    "grants:fetch": {"json", "text"},
+    "preprints:search": {"jsonl", "json", "text"},
+    "preprints:by-category": {"jsonl", "json", "text"},
+    "preprints:by-date-range": {"jsonl", "json", "text"},
+    "preprints:stats": {"json", "text"},
+}
+
+
 def _add_search_arguments(
     parser: argparse.ArgumentParser,
     *,
@@ -43,7 +68,9 @@ def _add_search_arguments(
         parser.add_argument("--format", choices=format_choices)
 
 
-def _resolve_identifier_argument(args: argparse.Namespace) -> tuple[str | None, str | None, str | None, str | None]:
+def _resolve_identifier_argument(
+    args: argparse.Namespace,
+) -> tuple[str | None, str | None, str | None, str | None]:
     positional = getattr(args, "identifier", None)
     pmid = args.pmid
     pmcid = args.pmcid
@@ -67,6 +94,37 @@ def _write_output_if_needed(text: str, output_path: str | None) -> None:
         Path(output_path).write_text(text + ("" if text.endswith("\n") else "\n"), encoding="utf-8")
     else:
         print(text)
+
+
+def _resolve_related_source(source: str | None, identifier: str) -> str:
+    if source is not None:
+        return source
+    upper = identifier.upper()
+    if upper.startswith("PMC"):
+        return "PMC"
+    if upper.startswith("PPR") or upper.startswith("PMR"):
+        return "PPR"
+    return "MED"
+
+
+def _output_format_key(args: argparse.Namespace) -> str:
+    if args.command == "grants":
+        return f"grants:{args.grants_command}"
+    if args.command == "preprints":
+        return f"preprints:{args.preprints_command}"
+    return str(args.command)
+
+
+def _resolve_output_format(args: argparse.Namespace, config: dict) -> str:
+    explicit = getattr(args, "format", None)
+    if explicit:
+        return explicit
+    key = _output_format_key(args)
+    supported = COMMAND_OUTPUT_CHOICES.get(key, set())
+    configured = config["output"]["default_format"]
+    if configured in supported:
+        return configured
+    return DEFAULT_OUTPUT_FORMATS[args.command]
 
 
 def _add_grants_search_arguments(parser: argparse.ArgumentParser) -> None:
@@ -125,7 +183,9 @@ def _parser() -> argparse.ArgumentParser:
     export = subparsers.add_parser("export")
     _add_search_arguments(export, format_choices=None)
     export.add_argument("--output")
-    export.add_argument("--format", choices=["jsonl", "bib", "ris", "csl-json", "json", "text"], default="bib")
+    export.add_argument(
+        "--format", choices=["jsonl", "bib", "ris", "csl-json", "json", "text"], default="bib"
+    )
 
     grants = subparsers.add_parser("grants")
     grants_sub = grants.add_subparsers(dest="grants_command")
@@ -142,7 +202,9 @@ def _parser() -> argparse.ArgumentParser:
     preprints_sub = preprints.add_subparsers(dest="preprints_command")
 
     preprint_search = preprints_sub.add_parser("search")
-    _add_search_arguments(preprint_search, default_preprints_only=True, format_choices=["jsonl", "json", "text"])
+    _add_search_arguments(
+        preprint_search, default_preprints_only=True, format_choices=["jsonl", "json", "text"]
+    )
 
     by_category = preprints_sub.add_parser("by-category")
     by_category.add_argument("category")
@@ -163,7 +225,9 @@ def _parser() -> argparse.ArgumentParser:
     by_date_range.add_argument("--result-type", choices=["idlist", "lite", "core"])
     by_date_range.add_argument("--format", choices=["jsonl", "json", "text"])
 
-    preprints_sub.add_parser("stats").add_argument("--format", choices=["json", "text"], default="json")
+    preprints_sub.add_parser("stats").add_argument(
+        "--format", choices=["json", "text"], default="json"
+    )
 
     config = subparsers.add_parser("config")
     config_sub = config.add_subparsers(dest="config_command")
@@ -172,7 +236,14 @@ def _parser() -> argparse.ArgumentParser:
     config_set = config_sub.add_parser("set")
     config_set.add_argument(
         "field",
-        choices=["email", "default-result-type", "default-page-size", "default-format", "default-preprints-only", "synonym-expansion"],
+        choices=[
+            "email",
+            "default-result-type",
+            "default-page-size",
+            "default-format",
+            "default-preprints-only",
+            "synonym-expansion",
+        ],
     )
     config_set.add_argument("value")
 
@@ -212,9 +283,7 @@ def main(argv: list[str] | None = None) -> int:
     help_attr = help_attr_by_command.get(args.command)
     if help_attr and getattr(args, help_attr) is None:
         next(
-            action
-            for action in parser._actions
-            if isinstance(action, argparse._SubParsersAction)
+            action for action in parser._actions if isinstance(action, argparse._SubParsersAction)
         ).choices[args.command].print_help()
         return 0
     config = load_config()
@@ -232,7 +301,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     service = EuropePmcService(config=config)
-    output_format = getattr(args, "format", None) or config["output"]["default_format"]
+    output_format = _resolve_output_format(args, config)
 
     try:
         if args.command == "search":
@@ -278,16 +347,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "related":
-            source = args.source
             identifier = args.identifier
-            if source is None:
-                upper = identifier.upper()
-                if upper.startswith("PMC"):
-                    source = "PMC"
-                elif upper.startswith("PPR") or upper.startswith("PMR"):
-                    source = "PPR"
-                else:
-                    source = "MED"
+            source = _resolve_related_source(args.source, identifier)
             result = service.related_records(
                 source=source,
                 identifier=identifier,

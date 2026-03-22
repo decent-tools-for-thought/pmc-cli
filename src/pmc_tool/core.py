@@ -83,7 +83,12 @@ def build_query(
         sort,
         *(extra_filters or []),
     ]
-    if raw_query and (any(value for value in structured_values) or preprints_only or has_fulltext is not None or open_access_only):
+    if raw_query and (
+        any(value for value in structured_values)
+        or preprints_only
+        or has_fulltext is not None
+        or open_access_only
+    ):
         raise ValueError("--raw-query cannot be combined with structured query flags")
     if raw_query:
         return raw_query
@@ -138,7 +143,18 @@ def build_grants_query(
     pi_id: str | None,
     epmc_funders: bool | None,
 ) -> str:
-    structured_values = [query, pi, agency, grant_id, title, abstract, affiliation, active_date, category, pi_id]
+    structured_values = [
+        query,
+        pi,
+        agency,
+        grant_id,
+        title,
+        abstract,
+        affiliation,
+        active_date,
+        category,
+        pi_id,
+    ]
     if raw_query and (any(value for value in structured_values) or epmc_funders is not None):
         raise ValueError("--raw-query cannot be combined with structured grants query flags")
     if raw_query:
@@ -194,9 +210,15 @@ def _author_objects(record: dict[str, Any], include_affiliations: bool) -> list[
                 "lastName": author.get("lastName"),
                 "initials": author.get("initials"),
                 "fullName": author.get("fullName"),
-                "affiliation": _author_affiliations(author)[0] if include_affiliations and _author_affiliations(author) else None,
+                "affiliation": _author_affiliations(author)[0]
+                if include_affiliations and _author_affiliations(author)
+                else None,
                 "affiliations": _author_affiliations(author) if include_affiliations else [],
-                "orcid": ((author.get("authorId") or {}).get("value") if (author.get("authorId") or {}).get("type") == "ORCID" else None),
+                "orcid": (
+                    (author.get("authorId") or {}).get("value")
+                    if (author.get("authorId") or {}).get("type") == "ORCID"
+                    else None
+                ),
             }
             for author in author_list
         ]
@@ -282,17 +304,28 @@ def normalize_record(
         "url": _record_url(record),
         "source": source,
         "journal": {
-            "title": record.get("journalTitle") or (record.get("journalInfo") or {}).get("journal", {}).get("title"),
-            "abbreviation": (record.get("journalInfo") or {}).get("journal", {}).get("medlineAbbreviation"),
-            "volume": record.get("journalVolume") or (record.get("journalInfo") or {}).get("volume"),
+            "title": record.get("journalTitle")
+            or (record.get("journalInfo") or {}).get("journal", {}).get("title"),
+            "abbreviation": (record.get("journalInfo") or {})
+            .get("journal", {})
+            .get("medlineAbbreviation"),
+            "volume": record.get("journalVolume")
+            or (record.get("journalInfo") or {}).get("volume"),
             "issue": record.get("issue") or (record.get("journalInfo") or {}).get("issue"),
             "pages": record.get("pageInfo"),
         },
         "isOpenAccess": _bool_flag(record.get("isOpenAccess")),
-        "hasFullText": any(_bool_flag(record.get(flag)) for flag in ["hasPDF", "hasBook", "hasSuppl", "inPMC", "inEPMC"]),
+        "hasFullText": any(
+            _bool_flag(record.get(flag))
+            for flag in ["hasPDF", "hasBook", "hasSuppl", "inPMC", "inEPMC"]
+        ),
         "category": record.get("pubType") or (record.get("pubTypeList") or {}).get("pubType"),
         "keywordList": keywords,
-        "meshHeadingList": [heading.get("descriptorName") for heading in mesh_headings if heading.get("descriptorName")],
+        "meshHeadingList": [
+            heading.get("descriptorName")
+            for heading in mesh_headings
+            if heading.get("descriptorName")
+        ],
         "citationCount": record.get("citedByCount"),
         "referencesCount": record.get("hasReferences"),
         "fullTextUrls": [
@@ -321,7 +354,9 @@ def normalize_article_payload(
 ) -> dict[str, Any]:
     result_payload = payload.get("result")
     record = result_payload if isinstance(result_payload, dict) else payload
-    return normalize_record(record, result_type, include_author_affiliations=include_author_affiliations)
+    return normalize_record(
+        record, result_type, include_author_affiliations=include_author_affiliations
+    )
 
 
 def normalize_citation_record(record: dict[str, Any], kind: str) -> dict[str, Any]:
@@ -354,7 +389,12 @@ def normalize_citation_record(record: dict[str, Any], kind: str) -> dict[str, An
 def normalize_field_list(payload: dict[str, Any]) -> dict[str, Any]:
     terms = payload.get("searchTermList", {}).get("searchTerms", [])
     fields = [item.get("term") for item in terms if item.get("term")]
-    return {"backend": "europepmc", "fields": fields, "count": len(fields), "provenance": {"retrievedAt": _now()}}
+    return {
+        "backend": "europepmc",
+        "fields": fields,
+        "count": len(fields),
+        "provenance": {"retrievedAt": _now()},
+    }
 
 
 def _grant_aliases(person: dict[str, Any], grant: dict[str, Any]) -> dict[str, list[str]]:
@@ -459,7 +499,9 @@ def normalize_search_response(
     }
 
 
-def _pick_identifier(pmid: str | None, pmcid: str | None, ppr: str | None, doi: str | None) -> tuple[str, str]:
+def _pick_identifier(
+    pmid: str | None, pmcid: str | None, ppr: str | None, doi: str | None
+) -> tuple[str, str]:
     ids = [bool(pmid), bool(pmcid), bool(ppr), bool(doi)]
     if sum(ids) != 1:
         raise ValueError("Exactly one of --pmid/--pmcid/--ppr/--doi is required")
@@ -473,8 +515,13 @@ def _pick_identifier(pmid: str | None, pmcid: str | None, ppr: str | None, doi: 
 
 
 def _render_bibtex_entry(item: dict[str, Any], index: int) -> str:
-    identifier = item["id"].get("doi") or item["id"].get("pmid") or item["id"].get("pmcid") or f"epmc{index}"
-    authors = " and ".join(author.get("fullName") or author.get("lastName") or "Unknown" for author in item.get("authors", []))
+    identifier = (
+        item["id"].get("doi") or item["id"].get("pmid") or item["id"].get("pmcid") or f"epmc{index}"
+    )
+    authors = " and ".join(
+        author.get("fullName") or author.get("lastName") or "Unknown"
+        for author in item.get("authors", [])
+    )
     year = (item.get("publishedDate") or "").split("-", 1)[0] or "????"
     journal = (item.get("journal") or {}).get("title")
     title = item.get("title") or ""
@@ -517,14 +564,19 @@ def _render_ris_entry(item: dict[str, Any]) -> str:
 def _render_csl_json(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     output = []
     for item in items:
-        issued_parts = [int(part) for part in (item.get("publishedDate") or "").split("-") if part.isdigit()]
+        issued_parts = [
+            int(part) for part in (item.get("publishedDate") or "").split("-") if part.isdigit()
+        ]
         output.append(
             {
                 "id": item["id"].get("doi") or item["id"].get("pmid") or item["id"].get("pmcid"),
                 "type": "article-journal",
                 "title": item.get("title"),
                 "author": [
-                    {"given": author.get("firstName"), "family": author.get("lastName") or author.get("fullName")}
+                    {
+                        "given": author.get("firstName"),
+                        "family": author.get("lastName") or author.get("fullName"),
+                    }
                     for author in item.get("authors", [])
                 ],
                 "DOI": item["id"].get("doi"),
@@ -621,7 +673,12 @@ class EuropePmcService:
                 return {"items": items[:limit], "meta": last_meta}
             next_cursor = payload.get("nextCursorMark")
             raw_batch = payload.get("resultList", {}).get("result", [])
-            if not raw_batch or limit is None or len(raw_batch) < resolved_page_size or next_cursor == params["cursorMark"]:
+            if (
+                not raw_batch
+                or limit is None
+                or len(raw_batch) < resolved_page_size
+                or next_cursor == params["cursorMark"]
+            ):
                 break
             params["cursorMark"] = next_cursor
         return {"items": items, "meta": last_meta}
@@ -644,7 +701,7 @@ class EuropePmcService:
         if source == "DOI":
             result = self.search(
                 query=None,
-                raw_query=f'DOI:{_quoted(identifier)}',
+                raw_query=f"DOI:{_quoted(identifier)}",
                 title=None,
                 abstract=None,
                 author=None,
@@ -681,7 +738,13 @@ class EuropePmcService:
         if include_references:
             payload["references"] = self.related_records(
                 source=source if source != "DOI" else payload["source"],
-                identifier=identifier if source != "DOI" else (payload["id"].get("pmid") or payload["id"].get("pmcid") or payload["id"].get("pprId")),
+                identifier=identifier
+                if source != "DOI"
+                else (
+                    payload["id"].get("pmid")
+                    or payload["id"].get("pmcid")
+                    or payload["id"].get("pprId")
+                ),
                 relation="references",
                 page=1,
                 page_size=100,
@@ -689,14 +752,28 @@ class EuropePmcService:
         if include_citations:
             payload["citations"] = self.related_records(
                 source=source if source != "DOI" else payload["source"],
-                identifier=identifier if source != "DOI" else (payload["id"].get("pmid") or payload["id"].get("pmcid") or payload["id"].get("pprId")),
+                identifier=identifier
+                if source != "DOI"
+                else (
+                    payload["id"].get("pmid")
+                    or payload["id"].get("pmcid")
+                    or payload["id"].get("pprId")
+                ),
                 relation="citations",
                 page=1,
                 page_size=100,
             )
         return payload
 
-    def related_records(self, *, source: str | None, identifier: str | None, relation: str, page: int, page_size: int) -> dict[str, Any]:
+    def related_records(
+        self,
+        *,
+        source: str | None,
+        identifier: str | None,
+        relation: str,
+        page: int,
+        page_size: int,
+    ) -> dict[str, Any]:
         if relation not in {"references", "citations"}:
             raise ValueError(f"Unsupported relation: {relation}")
         if not source or not identifier:
@@ -845,7 +922,10 @@ class EuropePmcService:
             open_access_only=open_access_only,
             source=source,
             sort=sort,
-            page_size=min(limit or self.config["search"]["default_page_size"], self.config["search"]["default_page_size"]),
+            page_size=min(
+                limit or self.config["search"]["default_page_size"],
+                self.config["search"]["default_page_size"],
+            ),
             cursor_mark=None,
             limit=limit,
             result_type=result_type,
@@ -879,7 +959,9 @@ def render_output(data: dict[str, Any] | list[dict[str, Any]], fmt: str) -> str:
     if fmt == "bib":
         if not isinstance(data, list):
             raise ValueError("bib output requires a list of records")
-        return "\n\n".join(_render_bibtex_entry(item, index) for index, item in enumerate(data, start=1))
+        return "\n\n".join(
+            _render_bibtex_entry(item, index) for index, item in enumerate(data, start=1)
+        )
     if fmt == "ris":
         if not isinstance(data, list):
             raise ValueError("ris output requires a list of records")

@@ -5,13 +5,11 @@ import os
 from pathlib import Path
 import tomllib
 
+
 def _xdg_config_home() -> Path:
     configured = os.environ.get("XDG_CONFIG_HOME")
     return Path(configured).expanduser() if configured else Path.home() / ".config"
 
-
-CONFIG_DIR = _xdg_config_home() / "pmc-tool"
-CONFIG_PATH = CONFIG_DIR / "config.toml"
 
 DEFAULT_CONFIG = {
     "api": {
@@ -30,6 +28,14 @@ DEFAULT_CONFIG = {
 }
 
 
+def config_dir() -> Path:
+    return _xdg_config_home() / "pmc-tool"
+
+
+def config_path() -> Path:
+    return config_dir() / "config.toml"
+
+
 def _merge(base: dict, override: dict) -> dict:
     result = deepcopy(base)
     for key, value in override.items():
@@ -41,15 +47,17 @@ def _merge(base: dict, override: dict) -> dict:
 
 
 def load_config() -> dict:
-    if not CONFIG_PATH.exists():
+    path = config_path()
+    if not path.exists():
         return deepcopy(DEFAULT_CONFIG)
-    with CONFIG_PATH.open("rb") as handle:
+    with path.open("rb") as handle:
         loaded = tomllib.load(handle)
     return _merge(DEFAULT_CONFIG, loaded)
 
 
 def save_config(config: dict) -> None:
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    path = config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
     lines = []
     for section, values in config.items():
         lines.append(f"[{section}]")
@@ -63,7 +71,7 @@ def save_config(config: dict) -> None:
                 encoded = f'"{escaped}"'
             lines.append(f"{key} = {encoded}")
         lines.append("")
-    CONFIG_PATH.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
 
 def reset_config() -> dict:

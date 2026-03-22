@@ -8,6 +8,13 @@ Command-line access to the Europe PMC REST API with support for search, fetch, r
 uv tool install .
 ```
 
+From a release artifact:
+
+```bash
+python -m pip install pmc-tool-0.1.0-py3-none-any.whl
+pmc --help
+```
+
 For local execution without installation:
 
 ```bash
@@ -16,6 +23,36 @@ uv run pmc --help
 ```
 
 Tagged GitHub releases publish Python distribution artifacts built from the tagged commit.
+
+## Authentication And Config
+
+Europe PMC does not require an API key for the endpoints this CLI uses. The only optional identity setting is an email address added to the User-Agent string.
+
+```bash
+pmc config set email your-email@example.com
+pmc config show
+```
+
+Configuration is stored at `$XDG_CONFIG_HOME/pmc-tool/config.toml` or `~/.config/pmc-tool/config.toml` when `XDG_CONFIG_HOME` is unset.
+
+Useful defaults:
+
+```bash
+pmc config set default-result-type core
+pmc config set default-page-size 1000
+pmc config set default-format jsonl
+pmc config set synonym-expansion true
+```
+
+## Smoke Usage
+
+Minimal smoke checks after install:
+
+```bash
+pmc search "machine learning" --limit 1 --format text
+pmc fetch --pmid 35092342 --format text
+pmc fields --format text
+```
 
 ## Commands
 
@@ -124,12 +161,13 @@ pmc config show
 pmc config set email your-email@example.com
 pmc config set default-result-type core
 pmc config set default-page-size 1000
+pmc config set default-format jsonl
 pmc config set synonym-expansion true
 ```
 
 ## Output
 
-The CLI normalizes Europe PMC responses into a stable JSON shape for search and fetch operations, while relation and field commands expose structured command-specific payloads.
+The CLI normalizes Europe PMC responses into a stable JSON shape for search and fetch operations, while relation and field commands expose structured command-specific payloads. Search-like commands default to the configured output format when it is supported for that command. Fetch, fields, and single-record grant lookups default to JSON when the configured default would be invalid for that surface.
 
 ## Coverage
 

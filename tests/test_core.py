@@ -52,7 +52,21 @@ class PmcCoreTests(unittest.TestCase):
 
     def test_raw_query_conflicts_with_structured_flags(self) -> None:
         with self.assertRaises(ValueError):
-            build_query("term", "TITLE:test", None, None, None, None, None, None, False, None, False, None, None)
+            build_query(
+                "term",
+                "TITLE:test",
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                False,
+                None,
+                False,
+                None,
+                None,
+            )
 
     def test_build_grants_query_from_helpers(self) -> None:
         query = build_grants_query(
@@ -76,7 +90,9 @@ class PmcCoreTests(unittest.TestCase):
 
     def test_grants_raw_query_conflicts_with_helpers(self) -> None:
         with self.assertRaises(ValueError):
-            build_grants_query(None, "pi:smith", "Smith", None, None, None, None, None, None, None, None, None)
+            build_grants_query(
+                None, "pi:smith", "Smith", None, None, None, None, None, None, None, None, None
+            )
 
     def test_normalize_record_maps_ids_and_affiliations(self) -> None:
         record = {
@@ -92,7 +108,9 @@ class PmcCoreTests(unittest.TestCase):
                         "lastName": "Doe",
                         "initials": "J",
                         "authorId": {"type": "ORCID", "value": "0000-0001"},
-                        "authorAffiliationDetailsList": {"authorAffiliation": [{"affiliation": "Inst A"}]},
+                        "authorAffiliationDetailsList": {
+                            "authorAffiliation": [{"affiliation": "Inst A"}]
+                        },
                     }
                 ]
             },
@@ -103,7 +121,9 @@ class PmcCoreTests(unittest.TestCase):
             "keywordList": {"keyword": ["single-cell"]},
             "meshHeadingList": {"meshHeading": [{"descriptorName": "Neoplasms"}]},
         }
-        normalized = normalize_record(record, "lite", query_text="SRC:PPR", include_author_affiliations=True)
+        normalized = normalize_record(
+            record, "lite", query_text="SRC:PPR", include_author_affiliations=True
+        )
         self.assertEqual(normalized["id"]["pprId"], "PPR123")
         self.assertTrue(normalized["isOpenAccess"])
         self.assertFalse(normalized["hasFullText"])
@@ -135,7 +155,10 @@ class PmcCoreTests(unittest.TestCase):
                 "StartDate": "2007-02-01",
                 "EndDate": "2011-01-31",
                 "Amount": {"value": 648257.0, "Currency": "GBP"},
-                "Funder": {"Name": "Wellcome Trust", "FundRefID": "https://doi.org/10.13039/100010269"},
+                "Funder": {
+                    "Name": "Wellcome Trust",
+                    "FundRefID": "https://doi.org/10.13039/100010269",
+                },
             },
             "Institution": {"Name": "University College London", "RORID": "ror.org/02jx3x895"},
         }
@@ -168,8 +191,20 @@ class PmcCoreTests(unittest.TestCase):
                     "request": {"queryString": '"cancer"'},
                     "resultList": {
                         "result": [
-                            {"source": "MED", "pmid": "1", "title": "A", "authorString": "Doe J.", "firstPublicationDate": "2024-01-01"},
-                            {"source": "MED", "pmid": "2", "title": "B", "authorString": "Doe J.", "firstPublicationDate": "2024-01-02"},
+                            {
+                                "source": "MED",
+                                "pmid": "1",
+                                "title": "A",
+                                "authorString": "Doe J.",
+                                "firstPublicationDate": "2024-01-01",
+                            },
+                            {
+                                "source": "MED",
+                                "pmid": "2",
+                                "title": "B",
+                                "authorString": "Doe J.",
+                                "firstPublicationDate": "2024-01-02",
+                            },
                         ]
                     },
                 }
@@ -212,14 +247,22 @@ class PmcCoreTests(unittest.TestCase):
                     "hitCount": 1,
                     "referenceList": {
                         "reference": [
-                            {"id": "123", "source": "MED", "title": "Referenced", "authorString": "Doe J.", "pubYear": 2024}
+                            {
+                                "id": "123",
+                                "source": "MED",
+                                "title": "Referenced",
+                                "authorString": "Doe J.",
+                                "pubYear": 2024,
+                            }
                         ]
                     },
                 }
             }
         )
         service = EuropePmcService(client=client)
-        result = service.related_records(source="MED", identifier="35092342", relation="references", page=1, page_size=25)
+        result = service.related_records(
+            source="MED", identifier="35092342", relation="references", page=1, page_size=25
+        )
         self.assertEqual(result["items"][0]["title"], "Referenced")
         self.assertEqual(result["meta"]["identifier"], "35092342")
 
@@ -238,6 +281,13 @@ class PmcCoreTests(unittest.TestCase):
         self.assertIn("TY  - JOUR", render_output(items, "ris"))
         self.assertIn('"DOI": "10.1/example"', render_output(items, "csl-json"))
 
+    def test_render_output_text_and_jsonl_variants(self) -> None:
+        items = [{"title": "Example", "id": {"pmid": "123"}}]
+        self.assertEqual(render_output(items, "text"), "Example [123]")
+        self.assertEqual(
+            render_output(items, "jsonl"), '{"title": "Example", "id": {"pmid": "123"}}'
+        )
+
     def test_grants_search_uses_grist_endpoint(self) -> None:
         base = "https://www.ebi.ac.uk/europepmc/GristAPI/rest/get/query=gid:081052&format=json&resultType=core&page=1"
         client = DummyClient(
@@ -251,7 +301,11 @@ class PmcCoreTests(unittest.TestCase):
                     "RecordList": {
                         "Record": {
                             "Person": {"FamilyName": "Osrin"},
-                            "Grant": {"Id": "081052", "Title": "Cluster randomised trial", "Funder": {"Name": "Wellcome Trust"}},
+                            "Grant": {
+                                "Id": "081052",
+                                "Title": "Cluster randomised trial",
+                                "Funder": {"Name": "Wellcome Trust"},
+                            },
                         }
                     },
                 }
@@ -271,11 +325,19 @@ class PmcCoreTests(unittest.TestCase):
                     (),
                 ): {
                     "HitCount": "1",
-                    "Request": {"Query": 'pi:Smith ga:"Wellcome Trust" date:2010', "ResultType": "Lite", "Page": "1"},
+                    "Request": {
+                        "Query": 'pi:Smith ga:"Wellcome Trust" date:2010',
+                        "ResultType": "Lite",
+                        "Page": "1",
+                    },
                     "RecordList": {
                         "Record": {
                             "Person": {"FamilyName": "Smith"},
-                            "Grant": {"Id": "1", "Title": "Grant", "Funder": {"Name": "Wellcome Trust"}},
+                            "Grant": {
+                                "Id": "1",
+                                "Title": "Grant",
+                                "Funder": {"Name": "Wellcome Trust"},
+                            },
                         }
                     },
                 }
@@ -300,6 +362,75 @@ class PmcCoreTests(unittest.TestCase):
             limit=1,
         )
         self.assertEqual(result["items"][0]["funder"]["name"], "Wellcome Trust")
+
+    def test_export_reuses_search_with_limit_bounded_page_size(self) -> None:
+        base = "https://www.ebi.ac.uk/europepmc/webservices/rest"
+        params = {
+            "query": '"cancer"',
+            "format": "json",
+            "resultType": "lite",
+            "pageSize": 5,
+            "cursorMark": "*",
+            "synonym": "true",
+            "fields": None,
+        }
+        client = DummyClient(
+            {
+                (
+                    f"{base}/search",
+                    tuple(sorted(params.items())),
+                ): {
+                    "version": "6.9",
+                    "hitCount": 1,
+                    "nextCursorMark": "*",
+                    "request": {"queryString": '"cancer"'},
+                    "resultList": {
+                        "result": [
+                            {
+                                "source": "MED",
+                                "pmid": "1",
+                                "title": "A",
+                                "authorString": "Doe J.",
+                                "firstPublicationDate": "2024-01-01",
+                            }
+                        ]
+                    },
+                }
+            }
+        )
+        service = EuropePmcService(
+            client=client,
+            config={
+                "api": {"base_url": base, "default_result_type": "lite", "email": ""},
+                "search": {
+                    "default_page_size": 1000,
+                    "default_preprints_only": False,
+                    "synonym_expansion": True,
+                },
+                "output": {"default_format": "jsonl"},
+            },
+        )
+        result = service.export(
+            query="cancer",
+            raw_query=None,
+            title=None,
+            abstract=None,
+            author=None,
+            category=None,
+            from_date=None,
+            to_date=None,
+            preprints_only=False,
+            has_fulltext=None,
+            open_access_only=False,
+            source=None,
+            sort=None,
+            limit=5,
+            result_type="lite",
+            synonyms=True,
+            format_name="bib",
+        )
+        self.assertEqual(len(result["items"]), 1)
+        self.assertEqual(client.calls[0][1]["pageSize"], 5)
 
 
 if __name__ == "__main__":
