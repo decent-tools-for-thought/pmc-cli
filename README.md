@@ -14,11 +14,11 @@ Command-line client for Europe PMC search, fetch, related-record traversal, gran
 > This codebase is entirely AI-generated. It is useful to me, I hope it might be useful to others, and issues and contributions are welcome.
 
 ## Map
+$$\color{#EAB308}Tool \space \color{#CA8A04}Map$$
 - [Install](#install)
 - [Functionality](#functionality)
 - [Configuration](#configuration)
 - [Quick Start](#quick-start)
-- [Development](#development)
 - [Credits](#credits)
 
 ## Install
@@ -28,14 +28,8 @@ uv tool install .
 pmc --help
 ```
 
-For local development:
-
-```bash
-uv sync
-uv run pmc --help
-```
-
 ## Functionality
+$$\color{#EAB308}Core \space \color{#CA8A04}Features$$
 
 ### Literature Search
 - `pmc search`: search Europe PMC with free text, raw query syntax, title, abstract, author, category, date bounds, source filters, page size, cursor marks, limits, synonym-expansion control, result-type control, and `jsonl`/`json`/`text` output.
@@ -67,6 +61,7 @@ uv run pmc --help
 - `pmc config set default-result-type`, `default-page-size`, `default-format`, `default-preprints-only`, and `synonym-expansion`: tune default request behavior.
 
 ## Configuration
+$$\color{#EAB308}User \space \color{#CA8A04}Config$$
 
 Europe PMC does not require an API key for the endpoints this CLI uses. The main optional setting is an email address added to the `User-Agent` string:
 
@@ -78,6 +73,7 @@ pmc config show
 Config is stored at `$XDG_CONFIG_HOME/pmc-tool/config.toml` or `~/.config/pmc-tool/config.toml`.
 
 ## Quick Start
+$$\color{#EAB308}Quick \space \color{#CA8A04}Start$$
 
 ```bash
 pmc search "single cell RNA sequencing" --limit 5 --format text
@@ -90,14 +86,8 @@ pmc related citations PMC8860882 --source PMC --format json
 pmc export "machine learning" --limit 20 --format bib --output citations.bib
 ```
 
-## Development
-
-```bash
-uv run ruff check src
-uv run mypy
-```
-
 ## Credits
+$$\color{#EAB308}Project \space \color{#CA8A04}Credits$$
 
 This client is built for Europe PMC and is not affiliated with Europe PMC.
 
