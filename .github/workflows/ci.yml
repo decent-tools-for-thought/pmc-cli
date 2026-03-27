@@ -20,7 +20,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v6
 
-      - name: Install project and dev dependencies
+      - name: Install project dependencies
         run: uv sync --group dev
 
       - name: Check formatting
@@ -30,7 +30,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Type check
-        run: uv run mypy
+        run: uv run mypy src tests
 
       - name: Run unit tests
-        run: uv run python -m unittest discover -s tests -v
+        run: uv run pytest

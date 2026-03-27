@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
-from typing import Any
+from typing import Any, Protocol
 from urllib.parse import quote
 
 from .config import load_config
 from .http import HttpClient
+
+
+class JsonHttpClient(Protocol):
+    def get_json(self, url: str, params: dict[str, Any] | None = None) -> Any: ...
 
 
 VALID_RESULT_TYPES = {"idlist", "lite", "core"}
@@ -589,7 +593,7 @@ def _render_csl_json(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 class EuropePmcService:
-    def __init__(self, config: dict | None = None, client: HttpClient | None = None) -> None:
+    def __init__(self, config: dict | None = None, client: JsonHttpClient | None = None) -> None:
         self.config = config or load_config()
         email = self.config["api"].get("email")
         user_agent = "pmc-tool/0.1.0"

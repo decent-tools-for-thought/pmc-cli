@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Europe PMC CLI for fielded literature search"
 readme = "README.md"
 license = "0BSD"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 
 [project.scripts]
 pmc = "pmc_tool.cli:main"
@@ -17,6 +17,7 @@ pmc = "pmc_tool.cli:main"
 dev = [
     "build>=1.2.2",
     "mypy>=1.18.2",
+    "pytest>=8.4.2",
     "ruff>=0.13.1",
 ]
 
@@ -27,14 +28,14 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py313"
 line-length = 100
 
 [tool.ruff.format]
 quote-style = "double"
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 files = ["src/pmc_tool"]
 warn_unused_configs = true
 check_untyped_defs = true
