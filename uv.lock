@@ -145,7 +145,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pmc-tool"
+name = "pmc-cli"
 version = "0.1.0"
 source = { editable = "." }
 

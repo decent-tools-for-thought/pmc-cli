@@ -68,7 +68,7 @@ pmc config set email your-email@example.com    # add contact info to the User-Ag
 pmc config show                                # inspect saved defaults
 ```
 
-Config is stored at `$XDG_CONFIG_HOME/pmc-tool/config.toml` or `~/.config/pmc-tool/config.toml`.
+Config is stored at `$XDG_CONFIG_HOME/pmc-cli/config.toml` or `~/.config/pmc-cli/config.toml`.
 
 ## Quick Start
 $$\color{#EAB308}Try \space \color{#CA8A04}Search$$

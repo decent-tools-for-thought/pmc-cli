@@ -29,7 +29,7 @@ DEFAULT_CONFIG = {
 
 
 def config_dir() -> Path:
-    return _xdg_config_home() / "pmc-tool"
+    return _xdg_config_home() / "pmc-cli"
 
 
 def config_path() -> Path:

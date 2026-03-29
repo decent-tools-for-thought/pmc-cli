@@ -596,7 +596,7 @@ class EuropePmcService:
     def __init__(self, config: dict | None = None, client: JsonHttpClient | None = None) -> None:
         self.config = config or load_config()
         email = self.config["api"].get("email")
-        user_agent = "pmc-tool/0.1.0"
+        user_agent = "pmc-cli/0.1.0"
         if email:
             user_agent = f"{user_agent} ({email})"
         self.client = client or HttpClient(user_agent=user_agent)
