@@ -14,7 +14,7 @@ class JsonHttpClient(Protocol):
 
 VALID_RESULT_TYPES = {"idlist", "lite", "core"}
 ARTICLE_FORMATS = {"json", "xml"}
-EXPORT_FORMATS = {"jsonl", "bib", "ris", "csl-json"}
+EXPORT_FORMATS = {"jsonl", "bib", "ris", "csl-json", "json", "text"}
 GRANTS_RESULT_TYPES = {"lite", "core"}
 
 

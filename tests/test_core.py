@@ -432,6 +432,96 @@ class PmcCoreTests(unittest.TestCase):
         self.assertEqual(len(result["items"]), 1)
         self.assertEqual(client.calls[0][1]["pageSize"], 5)
 
+    def test_export_accepts_json_and_text_format_names(self) -> None:
+        base = "https://www.ebi.ac.uk/europepmc/webservices/rest"
+        params = {
+            "query": '"cancer"',
+            "format": "json",
+            "resultType": "lite",
+            "pageSize": 1,
+            "cursorMark": "*",
+            "synonym": "true",
+            "fields": None,
+        }
+        response = {
+            "version": "6.9",
+            "hitCount": 1,
+            "nextCursorMark": "*",
+            "request": {"queryString": '"cancer"'},
+            "resultList": {
+                "result": [
+                    {
+                        "source": "MED",
+                        "pmid": "1",
+                        "title": "A",
+                        "authorString": "Doe J.",
+                        "firstPublicationDate": "2024-01-01",
+                    }
+                ]
+            },
+        }
+        service = EuropePmcService(
+            client=DummyClient(
+                {
+                    (
+                        f"{base}/search",
+                        tuple(sorted(params.items())),
+                    ): response
+                }
+            ),
+            config={
+                "api": {"base_url": base, "default_result_type": "lite", "email": ""},
+                "search": {
+                    "default_page_size": 1000,
+                    "default_preprints_only": False,
+                    "synonym_expansion": True,
+                },
+                "output": {"default_format": "jsonl"},
+            },
+        )
+
+        json_result = service.export(
+            query="cancer",
+            raw_query=None,
+            title=None,
+            abstract=None,
+            author=None,
+            category=None,
+            from_date=None,
+            to_date=None,
+            preprints_only=False,
+            has_fulltext=None,
+            open_access_only=False,
+            source=None,
+            sort=None,
+            limit=1,
+            result_type="lite",
+            synonyms=True,
+            format_name="json",
+        )
+        text_result = service.export(
+            query="cancer",
+            raw_query=None,
+            title=None,
+            abstract=None,
+            author=None,
+            category=None,
+            from_date=None,
+            to_date=None,
+            preprints_only=False,
+            has_fulltext=None,
+            open_access_only=False,
+            source=None,
+            sort=None,
+            limit=1,
+            result_type="lite",
+            synonyms=True,
+            format_name="text",
+        )
+
+        self.assertEqual(len(json_result["items"]), 1)
+        self.assertEqual(len(text_result["items"]), 1)
+
 
 if __name__ == "__main__":
     unittest.main()
