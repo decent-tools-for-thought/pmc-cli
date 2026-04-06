@@ -154,8 +154,21 @@ ENDPOINT_DOCS = [
         "/search",
         "Search articles and preprints.",
         "xml, json, dc",
-        ["query", "resultType", "synonym", "cursorMark", "pageSize", "sort", "format", "callback", "email"],
-        ["API default format is xml; this CLI defaults to json.", "DC output ignores resultType and always behaves as core."],
+        [
+            "query",
+            "resultType",
+            "synonym",
+            "cursorMark",
+            "pageSize",
+            "sort",
+            "format",
+            "callback",
+            "email",
+        ],
+        [
+            "API default format is xml; this CLI defaults to json.",
+            "DC output ignores resultType and always behaves as core.",
+        ],
     ),
     EndpointDoc(
         "search-post",
@@ -163,7 +176,17 @@ ENDPOINT_DOCS = [
         "/searchPOST",
         "POST form-encoded search with the same parameters as /search.",
         "xml, json, dc",
-        ["query", "resultType", "synonym", "cursorMark", "pageSize", "sort", "format", "callback", "email"],
+        [
+            "query",
+            "resultType",
+            "synonym",
+            "cursorMark",
+            "pageSize",
+            "sort",
+            "format",
+            "callback",
+            "email",
+        ],
         ["Request body must be application/x-www-form-urlencoded.", "Useful for long queries."],
     ),
     EndpointDoc(
@@ -191,7 +214,9 @@ ENDPOINT_DOCS = [
         "Fetch a specific record by source and identifier.",
         "xml, json, dc",
         ["source", "id", "resultType", "format", "callback", "email"],
-        ["API doc says this endpoint also accepts debug, but the current Swagger schema does not publish that parameter."],
+        [
+            "API doc says this endpoint also accepts debug, but the current Swagger schema does not publish that parameter."
+        ],
     ),
     EndpointDoc(
         "citations",
@@ -244,8 +269,22 @@ ENDPOINT_DOCS = [
         "/{source}/{id}/datalinks",
         "Fetch consolidated Scholix-format data-literature links.",
         "xml, json",
-        ["source", "id", "category", "obtainedBy", "fromDate", "tags", "sectionLimit", "email", "ref", "format"],
-        ["The API documents fromDate as DD-MM-YYYY.", "Use comma-separated values for tags when sending multiple tags."],
+        [
+            "source",
+            "id",
+            "category",
+            "obtainedBy",
+            "fromDate",
+            "tags",
+            "sectionLimit",
+            "email",
+            "ref",
+            "format",
+        ],
+        [
+            "The API documents fromDate as DD-MM-YYYY.",
+            "Use comma-separated values for tags when sending multiple tags.",
+        ],
     ),
     EndpointDoc(
         "fulltext-xml",
@@ -298,7 +337,9 @@ class EuropePmcArticlesApi:
         self.config = config or load_config()
         self.release = release
         self.base_url = base_url or (
-            TEST_BASE_URL if release == "test" else self.config["api"].get("base_url", PRODUCTION_BASE_URL)
+            TEST_BASE_URL
+            if release == "test"
+            else self.config["api"].get("base_url", PRODUCTION_BASE_URL)
         )
         self.client = client or HttpClient(user_agent="pmc-cli/0.1.0")
 
@@ -341,7 +382,8 @@ class EuropePmcArticlesApi:
     ) -> HttpResponse:
         params = {
             "query": query,
-            "resultType": result_type or self.config["api"].get("default_result_type", DEFAULT_RESULT_TYPE),
+            "resultType": result_type
+            or self.config["api"].get("default_result_type", DEFAULT_RESULT_TYPE),
             "synonym": synonym,
             "cursorMark": cursor_mark,
             "pageSize": page_size,
@@ -367,7 +409,8 @@ class EuropePmcArticlesApi:
     ) -> HttpResponse:
         form = {
             "query": query,
-            "resultType": result_type or self.config["api"].get("default_result_type", DEFAULT_RESULT_TYPE),
+            "resultType": result_type
+            or self.config["api"].get("default_result_type", DEFAULT_RESULT_TYPE),
             "synonym": synonym,
             "cursorMark": cursor_mark,
             "pageSize": page_size,
@@ -378,7 +421,9 @@ class EuropePmcArticlesApi:
         }
         return self._request("POST", "/searchPOST", form=form)
 
-    def fields(self, *, format_name: str | None = None, callback: str | None = None) -> HttpResponse:
+    def fields(
+        self, *, format_name: str | None = None, callback: str | None = None
+    ) -> HttpResponse:
         return self._request(
             "GET",
             "/fields",
@@ -416,7 +461,8 @@ class EuropePmcArticlesApi:
         email: str | None = None,
     ) -> HttpResponse:
         params = {
-            "resultType": result_type or self.config["api"].get("default_result_type", DEFAULT_RESULT_TYPE),
+            "resultType": result_type
+            or self.config["api"].get("default_result_type", DEFAULT_RESULT_TYPE),
             "format": format_name or DEFAULT_JSON_FORMAT,
             "callback": callback,
             "email": self._email_or_default(email),
@@ -471,7 +517,9 @@ class EuropePmcArticlesApi:
             params=params,
         )
 
-    def evaluations(self, *, source: str, article_id: str, format_name: str | None = None) -> HttpResponse:
+    def evaluations(
+        self, *, source: str, article_id: str, format_name: str | None = None
+    ) -> HttpResponse:
         return self._request(
             "GET",
             f"/evaluations/{quote(source.upper(), safe='')}/{quote(article_id, safe='')}",
@@ -616,7 +664,9 @@ def render_doc(topic: str | None = None) -> str:
     if topic is None:
         lines.append("Endpoints")
         for endpoint in ENDPOINT_DOCS:
-            lines.append(f"- {endpoint.command}: {endpoint.method} {endpoint.path} [{endpoint.formats}]")
+            lines.append(
+                f"- {endpoint.command}: {endpoint.method} {endpoint.path} [{endpoint.formats}]"
+            )
             lines.append(f"  {endpoint.summary}")
         lines.append("")
         lines.append("Use `pmc doc <command>` for full parameter detail.")

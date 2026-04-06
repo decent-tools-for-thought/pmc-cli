@@ -336,13 +336,17 @@ def _config_handler(args: argparse.Namespace, config: dict) -> int:
     return 0
 
 
-def _endpoint_parser(subparsers: argparse._SubParsersAction[argparse.ArgumentParser], name: str, help_text: str) -> argparse.ArgumentParser:
+def _endpoint_parser(
+    subparsers: argparse._SubParsersAction[argparse.ArgumentParser], name: str, help_text: str
+) -> argparse.ArgumentParser:
     parser = subparsers.add_parser(name, help=help_text, description=help_text)
     parser.add_argument("--output")
     return parser
 
 
-def _add_article_query_parameters(parser: argparse.ArgumentParser, *, default_format: str = ARTICLES_DEFAULT_FORMAT) -> None:
+def _add_article_query_parameters(
+    parser: argparse.ArgumentParser, *, default_format: str = ARTICLES_DEFAULT_FORMAT
+) -> None:
     parser.add_argument("query", nargs="?")
     parser.add_argument("--query", dest="query_option")
     parser.add_argument("--result-type", choices=QUERY_RESULT_TYPES)
@@ -378,7 +382,9 @@ def _add_articles_surface(subparsers: argparse._SubParsersAction[argparse.Argume
 
     search_post = _endpoint_parser(articles_sub, "search-post", "POST /searchPOST")
     _add_article_query_parameters(search_post)
-    search_post.set_defaults(_handler=_article_query_handler("search_post"), _command_parser=search_post)
+    search_post.set_defaults(
+        _handler=_article_query_handler("search_post"), _command_parser=search_post
+    )
 
     fields = _endpoint_parser(articles_sub, "fields", "GET /fields")
     fields.add_argument("--format", choices=JSON_XML_FORMATS, default=ARTICLES_DEFAULT_FORMAT)
@@ -406,11 +412,15 @@ def _add_articles_surface(subparsers: argparse._SubParsersAction[argparse.Argume
 
     citations = _endpoint_parser(articles_sub, "citations", "GET /{source}/{id}/citations")
     _add_article_relation_parameters(citations)
-    citations.set_defaults(_handler=_article_relation_handler("citations"), _command_parser=citations)
+    citations.set_defaults(
+        _handler=_article_relation_handler("citations"), _command_parser=citations
+    )
 
     references = _endpoint_parser(articles_sub, "references", "GET /{source}/{id}/references")
     _add_article_relation_parameters(references)
-    references.set_defaults(_handler=_article_relation_handler("references"), _command_parser=references)
+    references.set_defaults(
+        _handler=_article_relation_handler("references"), _command_parser=references
+    )
 
     evaluations = _endpoint_parser(articles_sub, "evaluations", "GET /evaluations/{source}/{id}")
     evaluations.add_argument("source", nargs="?", choices=RELATION_SOURCE_CHOICES)
@@ -418,15 +428,21 @@ def _add_articles_surface(subparsers: argparse._SubParsersAction[argparse.Argume
     evaluations.add_argument("--format", choices=JSON_XML_FORMATS, default=ARTICLES_DEFAULT_FORMAT)
     evaluations.set_defaults(_handler=_article_evaluations_handler, _command_parser=evaluations)
 
-    database_links = _endpoint_parser(articles_sub, "database-links", "GET /{source}/{id}/databaseLinks")
+    database_links = _endpoint_parser(
+        articles_sub, "database-links", "GET /{source}/{id}/databaseLinks"
+    )
     database_links.add_argument("source", nargs="?", choices=RELATION_SOURCE_CHOICES)
     database_links.add_argument("id", nargs="?")
     database_links.add_argument("--database", choices=DATABASE_CHOICES)
     database_links.add_argument("--page", type=int)
     database_links.add_argument("--page-size", type=int)
-    database_links.add_argument("--format", choices=JSON_XML_FORMATS, default=ARTICLES_DEFAULT_FORMAT)
+    database_links.add_argument(
+        "--format", choices=JSON_XML_FORMATS, default=ARTICLES_DEFAULT_FORMAT
+    )
     database_links.add_argument("--callback")
-    database_links.set_defaults(_handler=_article_database_links_handler, _command_parser=database_links)
+    database_links.set_defaults(
+        _handler=_article_database_links_handler, _command_parser=database_links
+    )
 
     labs_links = _endpoint_parser(articles_sub, "labs-links", "GET /{source}/{id}/labsLinks")
     labs_links.add_argument("source", nargs="?", choices=RELATION_SOURCE_CHOICES)
@@ -453,22 +469,34 @@ def _add_articles_surface(subparsers: argparse._SubParsersAction[argparse.Argume
 
     fulltext_xml = _endpoint_parser(articles_sub, "fulltext-xml", "GET /{id}/fullTextXML")
     fulltext_xml.add_argument("id", nargs="?")
-    fulltext_xml.set_defaults(_handler=_article_xml_body_handler("fulltext_xml"), _command_parser=fulltext_xml)
+    fulltext_xml.set_defaults(
+        _handler=_article_xml_body_handler("fulltext_xml"), _command_parser=fulltext_xml
+    )
 
     book_xml = _endpoint_parser(articles_sub, "book-xml", "GET /{id}/bookXML")
     book_xml.add_argument("id", nargs="?")
     book_xml.set_defaults(_handler=_article_xml_body_handler("book_xml"), _command_parser=book_xml)
 
-    supplementary = _endpoint_parser(articles_sub, "supplementary-files", "GET /{id}/supplementaryFiles")
+    supplementary = _endpoint_parser(
+        articles_sub, "supplementary-files", "GET /{id}/supplementaryFiles"
+    )
     supplementary.add_argument("id", nargs="?")
     supplementary.add_argument("--include-inline-image", choices=INLINE_IMAGE_CHOICES)
-    supplementary.set_defaults(_handler=_article_supplementary_handler, _command_parser=supplementary)
+    supplementary.set_defaults(
+        _handler=_article_supplementary_handler, _command_parser=supplementary
+    )
 
-    status_update = _endpoint_parser(articles_sub, "status-update-search", "POST /status-update-search")
-    status_update.add_argument("--format", choices=JSON_XML_FORMATS, default=ARTICLES_DEFAULT_FORMAT)
+    status_update = _endpoint_parser(
+        articles_sub, "status-update-search", "POST /status-update-search"
+    )
+    status_update.add_argument(
+        "--format", choices=JSON_XML_FORMATS, default=ARTICLES_DEFAULT_FORMAT
+    )
     status_update.add_argument("--article", nargs=2, action="append", metavar=("SRC", "EXT_ID"))
     status_update.add_argument("--body")
-    status_update.set_defaults(_handler=_article_status_update_handler, _command_parser=status_update)
+    status_update.set_defaults(
+        _handler=_article_status_update_handler, _command_parser=status_update
+    )
 
 
 def _add_grants_surface(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
@@ -497,7 +525,9 @@ def _parser() -> argparse.ArgumentParser:
     _add_articles_surface(subparsers)
     _add_grants_surface(subparsers)
 
-    doc = subparsers.add_parser("doc", help="Explain API surfaces, endpoints, releases, and result types")
+    doc = subparsers.add_parser(
+        "doc", help="Explain API surfaces, endpoints, releases, and result types"
+    )
     doc.add_argument("surface", nargs="?", choices=["articles", "grants"])
     doc.add_argument(
         "topic",

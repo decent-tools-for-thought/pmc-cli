@@ -59,7 +59,9 @@ class HttpClient:
             raise ValueError("Only one of form or json_body may be set")
         if form is not None:
             request_headers["Content-Type"] = "application/x-www-form-urlencoded"
-            data = urlencode({k: v for k, v in form.items() if v is not None}, doseq=True).encode("utf-8")
+            data = urlencode({k: v for k, v in form.items() if v is not None}, doseq=True).encode(
+                "utf-8"
+            )
         elif json_body is not None:
             request_headers["Content-Type"] = "application/json"
             data = json.dumps(json_body, ensure_ascii=True).encode("utf-8")
@@ -80,7 +82,9 @@ class HttpClient:
                 if exc.code not in {429, 500, 502, 503, 504} or attempt == 4:
                     detail = exc.read().decode("utf-8", errors="replace").strip()
                     suffix = f" Body: {detail}" if detail else ""
-                    raise RuntimeError(f"Request failed with HTTP {exc.code}: {request_url}.{suffix}") from exc
+                    raise RuntimeError(
+                        f"Request failed with HTTP {exc.code}: {request_url}.{suffix}"
+                    ) from exc
             except URLError as exc:
                 if attempt == 4:
                     try:

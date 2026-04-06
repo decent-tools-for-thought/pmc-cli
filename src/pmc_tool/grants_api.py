@@ -46,17 +46,37 @@ ENDPOINT_DOCS = [
 ]
 
 QUERY_FIELD_DOCS = [
-    ("ga, grant_agency", "Search funder names, abbreviations, and FundRef IDs.", 'ga:"Wellcome Trust"'),
+    (
+        "ga, grant_agency",
+        "Search funder names, abbreviations, and FundRef IDs.",
+        'ga:"Wellcome Trust"',
+    ),
     ("gid, gr, grant_id", "Search grant IDs.", "gid:083611"),
     ("title, ti", "Search grant titles.", 'ti:"kidney cancer"'),
     ("abstract, abs", "Search grant abstracts.", 'abstract:"diverse functions"'),
-    ("date, active_date", "Search grants active on a given date. Format yyyy-mm-dd with optional month/day.", "active_date:2010"),
-    ("kw", "Keyword search across titles, abstracts, streams, and grant types.", 'kw:"Physiological Sciences"'),
+    (
+        "date, active_date",
+        "Search grants active on a given date. Format yyyy-mm-dd with optional month/day.",
+        "active_date:2010",
+    ),
+    (
+        "kw",
+        "Keyword search across titles, abstracts, streams, and grant types.",
+        'kw:"Physiological Sciences"',
+    ),
     ("pi", "Search PI last name with optional initials.", 'pi:"Hubbard S"'),
-    ("pi_id, author_id", "Search PI alternate identifiers such as ORCID. Format {type}/{value}.", "pi_id:ORCID/0000-0001-2345-6789"),
+    (
+        "pi_id, author_id",
+        "Search PI alternate identifiers such as ORCID. Format {type}/{value}.",
+        "pi_id:ORCID/0000-0001-2345-6789",
+    ),
     ("aff", "Search institution names and departments.", 'aff:"University of Manchester"'),
     ("cat", "Search grant category groupings.", 'cat:"COVID-19"'),
-    ("epmc_funders", "Restrict to Europe PMC funders. Accepted values yes|no, y|n, true|false.", "epmc_funders:yes"),
+    (
+        "epmc_funders",
+        "Restrict to Europe PMC funders. Accepted values yes|no, y|n, true|false.",
+        "epmc_funders:yes",
+    ),
 ]
 
 
@@ -82,7 +102,7 @@ class EuropePmcGrantsApi:
         page: int | None = None,
         format_name: str | None = None,
     ) -> HttpResponse:
-        segments = [f"query={quote(query, safe=':/\\\"')}"]
+        segments = [f"query={quote(query, safe=':/\\"')}"]
         if result_type or DEFAULT_RESULT_TYPE:
             segments.append(f"resultType={quote(result_type or DEFAULT_RESULT_TYPE, safe='')}")
         if page is not None:
@@ -116,7 +136,9 @@ def render_doc(topic: str | None = None) -> str:
     if topic is None:
         lines.append("Endpoints")
         for endpoint in ENDPOINT_DOCS:
-            lines.append(f"- {endpoint.command}: {endpoint.method} {endpoint.path} [{endpoint.formats}]")
+            lines.append(
+                f"- {endpoint.command}: {endpoint.method} {endpoint.path} [{endpoint.formats}]"
+            )
             lines.append(f"  {endpoint.summary}")
         lines.append("")
         lines.append("GRIST Query Fields")

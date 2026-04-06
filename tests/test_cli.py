@@ -30,11 +30,18 @@ class StdoutCapture:
 
 
 class FakeArticlesApi:
-    def __init__(self, config: dict, release: str = "production", base_url: str | None = None) -> None:
+    def __init__(
+        self, config: dict, release: str = "production", base_url: str | None = None
+    ) -> None:
         self.calls: list[tuple[str, dict]] = []
 
     def _response(self, content_type: str, body: bytes) -> HttpResponse:
-        return HttpResponse(url="https://example.test", status=200, headers={"Content-Type": content_type}, body=body)
+        return HttpResponse(
+            url="https://example.test",
+            status=200,
+            headers={"Content-Type": content_type},
+            body=body,
+        )
 
     def search(self, **kwargs: dict) -> HttpResponse:
         self.calls.append(("search", kwargs))
@@ -98,7 +105,9 @@ class FakeArticlesApi:
 
 
 class FakeGrantsApi:
-    def __init__(self, config: dict, release: str = "production", base_url: str | None = None) -> None:
+    def __init__(
+        self, config: dict, release: str = "production", base_url: str | None = None
+    ) -> None:
         self.calls: list[tuple[str, dict]] = []
 
     def search(self, **kwargs: dict) -> HttpResponse:
@@ -119,22 +128,32 @@ class CliTests(unittest.TestCase):
                 "default_result_type": "lite",
                 "email": "",
             },
-            "search": {"default_page_size": 1000, "default_preprints_only": False, "synonym_expansion": True},
+            "search": {
+                "default_page_size": 1000,
+                "default_preprints_only": False,
+                "synonym_expansion": True,
+            },
             "output": {"default_format": "jsonl"},
         }
 
-    def _run_main(self, argv: list[str]) -> tuple[int, str, str, list[FakeArticlesApi], list[FakeGrantsApi]]:
+    def _run_main(
+        self, argv: list[str]
+    ) -> tuple[int, str, str, list[FakeArticlesApi], list[FakeGrantsApi]]:
         stdout = StdoutCapture()
         stderr = StringIO()
         articles_holder: list[FakeArticlesApi] = []
         grants_holder: list[FakeGrantsApi] = []
 
-        def build_articles(*, config: dict, release: str = "production", base_url: str | None = None) -> FakeArticlesApi:
+        def build_articles(
+            *, config: dict, release: str = "production", base_url: str | None = None
+        ) -> FakeArticlesApi:
             service = FakeArticlesApi(config, release=release, base_url=base_url)
             articles_holder.append(service)
             return service
 
-        def build_grants(*, config: dict, release: str = "production", base_url: str | None = None) -> FakeGrantsApi:
+        def build_grants(
+            *, config: dict, release: str = "production", base_url: str | None = None
+        ) -> FakeGrantsApi:
             service = FakeGrantsApi(config, release=release, base_url=base_url)
             grants_holder.append(service)
             return service
@@ -158,7 +177,9 @@ class CliTests(unittest.TestCase):
         self.assertEqual(grants, [])
 
     def test_articles_fetch_is_namespaced(self) -> None:
-        code, output, _, articles, _ = self._run_main(["articles", "fetch", "MED", "123", "--format", "dc"])
+        code, output, _, articles, _ = self._run_main(
+            ["articles", "fetch", "MED", "123", "--format", "dc"]
+        )
         self.assertEqual(code, 0)
         self.assertEqual(json.loads(output)["id"], "123")
         self.assertEqual(articles[0].calls[0][1]["source"], "MED")
@@ -178,7 +199,9 @@ class CliTests(unittest.TestCase):
         self.assertEqual(articles, [])
 
     def test_grants_search_routes_to_grants_api(self) -> None:
-        code, output, _, articles, grants = self._run_main(["grants", "search", "pi:smith", "--format", "cerif"])
+        code, output, _, articles, grants = self._run_main(
+            ["grants", "search", "pi:smith", "--format", "cerif"]
+        )
         self.assertEqual(code, 0)
         self.assertEqual(json.loads(output)["mode"], "grants-search")
         self.assertEqual(articles, [])
