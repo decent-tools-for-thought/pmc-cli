@@ -158,11 +158,17 @@ def _article_profile_handler(args: argparse.Namespace, config: dict) -> int:
 
 def _article_fetch_handler(args: argparse.Namespace, config: dict) -> int:
     parser = _help_for(args)
-    if not _require({"source": args.source, "id": args.id}, parser):
+    doi = _trim(args.doi)
+    if not _require({"source-and-id-or-doi": doi or (args.source and args.id)}, parser):
         return 0
-    response = _articles_service(args, config).article(
-        source=args.source,
-        article_id=args.id,
+    service = _articles_service(args, config)
+    source, article_id = args.source, args.id
+    if doi:
+        record = service.resolve_doi(doi)
+        source, article_id = record["source"], record["id"]
+    response = service.article(
+        source=source,
+        article_id=article_id,
         result_type=args.result_type,
         format_name=args.format,
         callback=args.callback,
@@ -253,12 +259,23 @@ def _article_data_links_handler(args: argparse.Namespace, config: dict) -> int:
     return _emit_response(response, args.output)
 
 
-def _article_xml_body_handler(name: str) -> Handler:
+def _resolved_article_id(
+    args: argparse.Namespace, service: EuropePmcArticlesApi, resolver: str
+) -> str:
+    """Return the positional id, or the id the --doi flag resolves to."""
+    doi = _trim(args.doi)
+    if not doi:
+        return args.id
+    return getattr(service, resolver)(doi)
+
+
+def _article_xml_body_handler(name: str, resolver: str) -> Handler:
     def handler(args: argparse.Namespace, config: dict) -> int:
         parser = _help_for(args)
-        if not _require({"id": args.id}, parser):
+        if not _require({"id-or-doi": args.id or _trim(args.doi)}, parser):
             return 0
-        response = getattr(_articles_service(args, config), name)(article_id=args.id)
+        service = _articles_service(args, config)
+        response = getattr(service, name)(article_id=_resolved_article_id(args, service, resolver))
         return _emit_response(response, args.output)
 
     return handler
@@ -266,10 +283,11 @@ def _article_xml_body_handler(name: str) -> Handler:
 
 def _article_supplementary_handler(args: argparse.Namespace, config: dict) -> int:
     parser = _help_for(args)
-    if not _require({"id": args.id}, parser):
+    if not _require({"id-or-doi": args.id or _trim(args.doi)}, parser):
         return 0
-    response = _articles_service(args, config).supplementary_files(
-        article_id=args.id,
+    service = _articles_service(args, config)
+    response = service.supplementary_files(
+        article_id=_resolved_article_id(args, service, "resolve_doi_to_pmcid"),
         include_inline_image=args.include_inline_image,
     )
     return _emit_response(response, args.output)
@@ -404,6 +422,7 @@ def _add_articles_surface(subparsers: argparse._SubParsersAction[argparse.Argume
     article = _endpoint_parser(articles_sub, "fetch", "GET /article/{source}/{id}")
     article.add_argument("source", nargs="?", choices=SOURCE_CHOICES)
     article.add_argument("id", nargs="?")
+    article.add_argument("--doi", help="resolve a DOI to source and id via search, then fetch")
     article.add_argument("--result-type", choices=QUERY_RESULT_TYPES)
     article.add_argument("--format", choices=QUERY_FORMATS, default=ARTICLES_DEFAULT_FORMAT)
     article.add_argument("--callback")
@@ -469,18 +488,25 @@ def _add_articles_surface(subparsers: argparse._SubParsersAction[argparse.Argume
 
     fulltext_xml = _endpoint_parser(articles_sub, "fulltext-xml", "GET /{id}/fullTextXML")
     fulltext_xml.add_argument("id", nargs="?")
+    fulltext_xml.add_argument("--doi", help="resolve a DOI to its PMCID, then fetch")
     fulltext_xml.set_defaults(
-        _handler=_article_xml_body_handler("fulltext_xml"), _command_parser=fulltext_xml
+        _handler=_article_xml_body_handler("fulltext_xml", "resolve_doi_to_pmcid"),
+        _command_parser=fulltext_xml,
     )
 
     book_xml = _endpoint_parser(articles_sub, "book-xml", "GET /{id}/bookXML")
     book_xml.add_argument("id", nargs="?")
-    book_xml.set_defaults(_handler=_article_xml_body_handler("book_xml"), _command_parser=book_xml)
+    book_xml.add_argument("--doi", help="resolve a DOI to its PMID or NBK id, then fetch")
+    book_xml.set_defaults(
+        _handler=_article_xml_body_handler("book_xml", "resolve_doi_to_book_id"),
+        _command_parser=book_xml,
+    )
 
     supplementary = _endpoint_parser(
         articles_sub, "supplementary-files", "GET /{id}/supplementaryFiles"
     )
     supplementary.add_argument("id", nargs="?")
+    supplementary.add_argument("--doi", help="resolve a DOI to its PMCID, then download")
     supplementary.add_argument("--include-inline-image", choices=INLINE_IMAGE_CHOICES)
     supplementary.set_defaults(
         _handler=_article_supplementary_handler, _command_parser=supplementary

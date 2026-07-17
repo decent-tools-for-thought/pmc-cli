@@ -30,33 +30,30 @@ pmc --help           # inspect the command surface
 
 ## Functionality
 $$\color{#EAB308}Paper \space \color{#CA8A04}Search$$
-- `pmc search`: search Europe PMC with free text, raw query syntax, title, abstract, author, category, date bounds, source filters, page size, cursor marks, limits, synonym-expansion control, result-type control, and `jsonl`/`json`/`text` output.
-- `pmc search`: supports `--preprints-only`, full-text filtering, open-access-only filtering, explicit field selection, and author-affiliation inclusion.
-- `pmc fetch`: fetch a single record by positional identifier, `--pmid`, `--pmcid`, `--ppr`, or `--doi`.
-- `pmc fetch`: optionally include references, citations, and author affiliations.
-- `pmc related references <identifier>`: fetch references for a MED, PMC, or PPR record.
-- `pmc related citations <identifier>`: fetch citations for a MED, PMC, or PPR record.
-- `pmc fields`: list the searchable fields exposed by the client.
+- `pmc articles search`: search Europe PMC with free text or raw query syntax, with result-type, synonym-expansion, cursor-mark, page-size, sort, and format controls.
+- `pmc articles search-post`: the same search over `POST`, for queries too long for a URL.
+- `pmc articles fetch <source> <id>`: fetch a single record; `--doi` resolves a DOI instead.
+- `pmc articles citations` / `pmc articles references`: traverse related records.
+- `pmc articles fields`, `pmc articles profile`: inspect searchable fields and result profiles.
 
-$$\color{#EAB308}Citation \space \color{#CA8A04}Export$$
-- `pmc export`: run a search and export results as `bib`, `ris`, `csl-json`, `jsonl`, `json`, or `text`.
-- `pmc export --output <path>`: write export output directly to a file.
+$$\color{#EAB308}Full \space Text \space and \space \color{#CA8A04}Supplementary \space Files$$
+- `pmc articles fulltext-xml <pmcid>`: fetch open-access full text as XML; `--doi` accepted.
+- `pmc articles book-xml <id>`: fetch bookshelf XML by NBK or PM id; `--doi` accepted.
+- `pmc articles supplementary-files <pmcid>`: download supplementary files as a zip; `--doi` accepted.
+- `pmc articles data-links`, `database-links`, `labs-links`: follow links to data deposited in external repositories.
 
 $$\color{#EAB308}Grant \space \color{#CA8A04}Search$$
-- `pmc grants search`: search grant data by free text, raw query, PI, agency, grant ID, title, abstract, affiliation, active date, category, PI ID, and Europe PMC funder participation.
-- `pmc grants fetch <grant-id>`: fetch one grant record.
+- `pmc grants search`: search grant data by PI, agency, grant ID, title, abstract, affiliation, active date, and category, using the GRIST query syntax.
 
-$$\color{#EAB308}Preprint \space \color{#CA8A04}Search$$
-- `pmc preprints search`: search only preprint records with the same fielded controls as general literature search.
-- `pmc preprints by-category <category>`: browse preprints by category with date and paging controls.
-- `pmc preprints by-date-range <from> <to>`: browse preprints within a date range.
-- `pmc preprints stats`: fetch aggregate preprint statistics.
+$$\color{#EAB308}Endpoint \space \color{#CA8A04}Docs$$
+- `pmc doc articles <endpoint>`: print the parameters and notes for one Europe PMC endpoint.
+- `pmc doc grants search`: the same for the grants surface.
 
 $$\color{#EAB308}Saved \space \color{#CA8A04}Defaults$$
 - `pmc config show`: print the saved config.
 - `pmc config reset`: restore defaults.
 - `pmc config set email`: save an email value for the `User-Agent`.
-- `pmc config set default-result-type`, `default-page-size`, `default-format`, `default-preprints-only`, and `synonym-expansion`: tune default request behavior.
+- `pmc config set base-url` and `default-result-type`: tune default request behavior.
 
 ## Configuration
 $$\color{#EAB308}Save \space \color{#CA8A04}Defaults$$
@@ -74,14 +71,46 @@ Config is stored at `$XDG_CONFIG_HOME/pmc-cli/config.toml` or `~/.config/pmc-cli
 $$\color{#EAB308}Try \space \color{#CA8A04}Search$$
 
 ```bash
-pmc search "single cell RNA sequencing" --limit 5 --format text    # search the literature
+pmc articles search "single cell RNA sequencing" --page-size 5    # search the literature
 
-pmc fetch --pmid 35092342 --format text    # fetch one record by PMID
+pmc articles fetch MED 35092342                      # fetch one record by source and id
+pmc articles fetch --doi 10.1111/brv.12453           # or resolve a DOI
 
-pmc related references 35092342 --source MED --page-size 25 --format text    # follow references
-pmc related citations PMC8860882 --source PMC --format json                   # follow citations
+pmc articles references MED 35092342 --page-size 25    # follow references
+pmc articles citations PMC PMC8860882                  # follow citations
+```
 
-pmc export "machine learning" --limit 20 --format bib --output citations.bib    # export citations to BibTeX
+$$\color{#EAB308}Download \space \color{#CA8A04}Supplementary \space Files$$
+
+Supplementary files are served as a zip, for **open-access PMC records only**:
+
+```bash
+pmc articles supplementary-files PMC6378602 --output suppl.zip    # by PMCID
+pmc articles supplementary-files --doi 10.1111/brv.12453 --output suppl.zip    # by DOI
+```
+
+By default the zip also contains the article's inline figure images. Pass
+`--include-inline-image no` to get only genuine supplementary files — for articles whose
+only attachments are inline figures this returns a 404, which is a meaningful "no
+supplements" answer rather than an error to work around:
+
+```bash
+pmc articles supplementary-files PMC6378602 --include-inline-image no --output suppl.zip
+```
+
+Requests for a non-open-access article fail with a non-zero exit status and leave no
+output file behind, so a batch download will not silently fill up with error stubs.
+Find candidates with the `HAS_SUPPL` and `OPEN_ACCESS` filters:
+
+```bash
+pmc articles search "OPEN_ACCESS:y AND HAS_SUPPL:Y AND HAS_DOI:Y" --page-size 10
+```
+
+Full text for open-access records comes back as JATS XML:
+
+```bash
+pmc articles fulltext-xml PMC6378602 --output article.xml
+pmc articles fulltext-xml --doi 10.1111/brv.12453 --output article.xml
 ```
 
 ## Credits

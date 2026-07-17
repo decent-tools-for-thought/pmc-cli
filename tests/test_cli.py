@@ -99,6 +99,18 @@ class FakeArticlesApi:
         self.calls.append(("supplementary_files", kwargs))
         return self._response("application/zip", b"PK\x03\x04")
 
+    def resolve_doi(self, doi: str) -> dict[str, str | None]:
+        self.calls.append(("resolve_doi", {"doi": doi}))
+        return {"source": "PMC", "id": "PMC123", "pmid": "999", "pmcid": "PMC123"}
+
+    def resolve_doi_to_pmcid(self, doi: str) -> str:
+        self.calls.append(("resolve_doi_to_pmcid", {"doi": doi}))
+        return "PMC123"
+
+    def resolve_doi_to_book_id(self, doi: str) -> str:
+        self.calls.append(("resolve_doi_to_book_id", {"doi": doi}))
+        return "NBK123"
+
     def status_update_search(self, **kwargs: dict) -> HttpResponse:
         self.calls.append(("status_update_search", kwargs))
         return self._response("application/json", b'{"articlesWithStatusUpdate":[]}')
@@ -235,6 +247,39 @@ class CliTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(output, "<article/>")
         self.assertEqual(articles[0].calls[0][0], "fulltext_xml")
+
+    def test_fetch_resolves_doi_to_source_and_id(self) -> None:
+        code, _, _, articles, _ = self._run_main(["articles", "fetch", "--doi", "10.1/abc"])
+        self.assertEqual(code, 0)
+        self.assertEqual(articles[0].calls[0], ("resolve_doi", {"doi": "10.1/abc"}))
+        self.assertEqual(articles[0].calls[1][1]["source"], "PMC")
+        self.assertEqual(articles[0].calls[1][1]["article_id"], "PMC123")
+
+    def test_supplementary_files_resolves_doi_to_pmcid(self) -> None:
+        code, _, _, articles, _ = self._run_main(
+            ["articles", "supplementary-files", "--doi", "10.1/abc"]
+        )
+        self.assertEqual(code, 0)
+        self.assertEqual(articles[0].calls[0], ("resolve_doi_to_pmcid", {"doi": "10.1/abc"}))
+        self.assertEqual(articles[0].calls[1][1]["article_id"], "PMC123")
+
+    def test_book_xml_resolves_doi_to_book_id(self) -> None:
+        code, _, _, articles, _ = self._run_main(["articles", "book-xml", "--doi", "10.1/abc"])
+        self.assertEqual(code, 0)
+        self.assertEqual(articles[0].calls[0], ("resolve_doi_to_book_id", {"doi": "10.1/abc"}))
+        self.assertEqual(articles[0].calls[1][1]["article_id"], "NBK123")
+
+    def test_positional_id_takes_precedence_over_doi_lookup(self) -> None:
+        code, _, _, articles, _ = self._run_main(["articles", "supplementary-files", "PMC777"])
+        self.assertEqual(code, 0)
+        self.assertEqual(articles[0].calls[0][0], "supplementary_files")
+        self.assertEqual(articles[0].calls[0][1]["article_id"], "PMC777")
+
+    def test_supplementary_files_without_id_or_doi_shows_help(self) -> None:
+        code, output, _, articles, _ = self._run_main(["articles", "supplementary-files"])
+        self.assertEqual(code, 0)
+        self.assertIn("supplementaryFiles", output)
+        self.assertEqual(articles, [])  # no request is attempted without an identifier
 
     def test_status_update_search_accepts_articles(self) -> None:
         code, output, _, articles, _ = self._run_main(

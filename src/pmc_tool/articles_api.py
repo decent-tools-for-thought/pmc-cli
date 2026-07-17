@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
+from xml.etree import ElementTree
 
 from .config import load_config
 from .http import HttpClient, HttpResponse
@@ -215,7 +216,8 @@ ENDPOINT_DOCS = [
         "xml, json, dc",
         ["source", "id", "resultType", "format", "callback", "email"],
         [
-            "API doc says this endpoint also accepts debug, but the current Swagger schema does not publish that parameter."
+            "API doc says this endpoint also accepts debug, but the current Swagger schema does not publish that parameter.",
+            "There is no DOI route; the CLI --doi flag resolves a DOI via /search first.",
         ],
     ),
     EndpointDoc(
@@ -293,7 +295,10 @@ ENDPOINT_DOCS = [
         "Fetch Open Access article full text as XML.",
         "xml",
         ["id"],
-        ["No format parameter; XML is the endpoint payload."],
+        [
+            "No format parameter; XML is the endpoint payload.",
+            "The CLI --doi flag resolves a DOI to a PMCID via /search first.",
+        ],
     ),
     EndpointDoc(
         "book-xml",
@@ -302,7 +307,10 @@ ENDPOINT_DOCS = [
         "Fetch Open Access bookshelf/book XML.",
         "xml",
         ["id"],
-        ["Accepts either a PMID or NBK identifier."],
+        [
+            "Accepts either a PMID or NBK identifier.",
+            "The CLI --doi flag resolves a DOI to a PMID or NBK id via /search first.",
+        ],
     ),
     EndpointDoc(
         "supplementary-files",
@@ -311,7 +319,14 @@ ENDPOINT_DOCS = [
         "Download supplementary files as a zip archive.",
         "zip",
         ["id", "includeInlineImage"],
-        ["No json/xml switch; this endpoint downloads a zip when files exist."],
+        [
+            "No json/xml switch; this endpoint downloads a zip when files exist.",
+            "Open Access PMC records only; other articles return an XML error with HTTP 200.",
+            "includeInlineImage defaults to yes, which bundles inline figures alongside "
+            "genuine supplementary files.",
+            "404 with an empty body means the article has no supplementary files.",
+            "The CLI --doi flag resolves a DOI to a PMCID via /search first.",
+        ],
     ),
     EndpointDoc(
         "status-update-search",
@@ -323,6 +338,41 @@ ENDPOINT_DOCS = [
         ["Request body must be application/json."],
     ),
 ]
+
+
+class EuropePmcApiError(RuntimeError):
+    """An error Europe PMC reported in a response body rather than a status code."""
+
+
+# Europe PMC answers some failures (non-open-access article, unknown book id) with
+# HTTP 200 and an XML error document. Success payloads root at <article> or
+# <book-part-wrapper>, so these roots identify a failure unambiguously.
+_ERROR_PAYLOAD_ROOTS = (b"<errorBean", b"<fullTextXMLBean")
+
+
+def _error_payload_message(body: bytes) -> str | None:
+    if not any(root in body[:200] for root in _ERROR_PAYLOAD_ROOTS):
+        return None
+    try:
+        root = ElementTree.fromstring(body.decode("utf-8", errors="replace"))
+    except ElementTree.ParseError:
+        return None
+    node = root.find("errMsg")
+    if node is None:
+        node = root.find(".//message")
+    if node is None:
+        return None
+    message = (node.text or "").strip()
+    return message or None
+
+
+def _raise_for_error_payload(response: HttpResponse) -> HttpResponse:
+    if "xml" not in response.content_type.lower():
+        return response
+    message = _error_payload_message(response.body)
+    if message:
+        raise EuropePmcApiError(f"Europe PMC returned an error for {response.url}: {message}")
+    return response
 
 
 class EuropePmcArticlesApi:
@@ -352,12 +402,14 @@ class EuropePmcArticlesApi:
         form: dict[str, Any] | None = None,
         json_body: Any | None = None,
     ) -> HttpResponse:
-        return self.client.request(
-            method=method,
-            url=f"{self.base_url}{path}",
-            params=params,
-            form=form,
-            json_body=json_body,
+        return _raise_for_error_payload(
+            self.client.request(
+                method=method,
+                url=f"{self.base_url}{path}",
+                params=params,
+                form=form,
+                json_body=json_body,
+            )
         )
 
     def _email_or_default(self, email: str | None) -> str | None:
@@ -366,6 +418,66 @@ class EuropePmcArticlesApi:
             return explicit
         configured = _trim(self.config["api"].get("email"))
         return configured
+
+    def resolve_doi(self, doi: str) -> dict[str, str | None]:
+        """Look up the Europe PMC record for a DOI.
+
+        Europe PMC has no /article/DOI/{id} route, so a DOI has to be resolved
+        through search before any identifier-keyed endpoint can be called.
+        """
+        cleaned = _trim(doi)
+        if not cleaned:
+            raise ValueError("A DOI is required")
+        cleaned = cleaned.removeprefix("https://doi.org/").removeprefix("doi:")
+        escaped = cleaned.replace('"', '\\"')
+        payload = self._request(
+            "GET",
+            "/search",
+            params={
+                "query": f'DOI:"{escaped}"',
+                "format": DEFAULT_JSON_FORMAT,
+                "resultType": "lite",
+                "pageSize": 2,
+                "synonym": "false",
+            },
+        ).json()
+        results = payload.get("resultList", {}).get("result", [])
+        if not results:
+            raise EuropePmcApiError(f"No Europe PMC record found for DOI {cleaned}")
+        if len(results) > 1:
+            found = ", ".join(
+                f"{item.get('source')}:{item.get('id')}" for item in results if item.get("id")
+            )
+            raise EuropePmcApiError(
+                f"DOI {cleaned} matches {len(results)} Europe PMC records ({found}). "
+                "Pass an explicit source and id instead."
+            )
+        record = results[0]
+        return {
+            "source": record.get("source"),
+            "id": record.get("id"),
+            "pmid": record.get("pmid"),
+            "pmcid": record.get("pmcid"),
+        }
+
+    def resolve_doi_to_pmcid(self, doi: str) -> str:
+        record = self.resolve_doi(doi)
+        pmcid = record.get("pmcid")
+        if not pmcid:
+            raise EuropePmcApiError(
+                f"DOI {doi} resolves to {record.get('source')}:{record.get('id')}, which has no "
+                "PMCID. Full text and supplementary files are only served for PMC records."
+            )
+        return pmcid
+
+    def resolve_doi_to_book_id(self, doi: str) -> str:
+        record = self.resolve_doi(doi)
+        book_id = record.get("pmid") or record.get("id")
+        if not book_id:
+            raise EuropePmcApiError(
+                f"DOI {doi} resolves to a record with no PMID or NBK id to fetch book XML with."
+            )
+        return book_id
 
     def search(
         self,
